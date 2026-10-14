@@ -1,255 +1,169 @@
-# Retreaver MCP Operator Skills & CLI Suite
+# Retreaver MCP Operator Skills, Slash Commands & CLI Suite
 
 [![MCP Compatible](https://img.shields.io/badge/MCP-Streamable%20HTTP-blue.svg)](https://modelcontextprotocol.io)
-[![Retreaver API](https://img.shields.io/badge/Retreaver-MCP%20v1-green.svg)](https://learn.retreaver.com/guides/install-mcp-server)
+[![Retreaver API](https://img.shields.io/badge/Retreaver-51%2F51%20MCP%20Tools-green.svg)](https://learn.retreaver.com/guides/install-mcp-server)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-brightgreen.svg)](https://python.org)
 
-Production-grade agentic operator skills, automation playbooks, and unified CLI for the official [Retreaver Model Context Protocol (MCP) server](https://learn.retreaver.com/guides/install-mcp-server) (`https://ai.retreaver.com/mcp`).
+Production-grade agentic operator skills, **10 slash-command prompt shortcuts (`/retreaver:*`)**, and a **9-module CLI suite** covering **100% of the 51 tools** on the official [Retreaver Model Context Protocol (MCP) server](https://learn.retreaver.com/guides/install-mcp-server) (`https://ai.retreaver.com/mcp`).
 
-This repository provides **natural-language shortcuts**, **strict code contracts**, and **executable tooling** so AI coding assistants (OMP, Claude Code, Cursor, Codex, Grok, Hermes, and more) can operate Retreaver call-tracking and Real-Time Bidding (RTB) campaigns as autonomous platform operators.
+Designed for AI coding harnesses (**OMP, Claude Code, Cursor, OpenAI Codex, xAI Grok, Nous Hermes**) so an assistant can operate Retreaver call-tracking and Real-Time Bidding (RTB) campaigns end-to-end.
 
 ---
 
 ## Quick Navigation
 
-- [Agent Shortcut Matrix](#agent-shortcut-matrix)
+- [Slash Commands & Prompt Shortcuts](#slash-commands--prompt-shortcuts)
+- [Multi-Step Operator Recipes](#multi-step-operator-recipes)
+- [9 Modular Skills (51/51 MCP Tools)](#9-modular-skills-5151-mcp-tools)
 - [Client Setup Guide](#client-setup-guide)
-- [Skills Architecture](#skills-architecture)
 - [CLI Reference](#cli-reference)
-- [Operational Invariants & Safety](#operational-invariants--safety)
+- [Operational Invariants & Troubleshooting](#operational-invariants--troubleshooting)
 - [Installation](#installation)
 
 ---
 
-## Agent Shortcut Matrix
+## Slash Commands & Prompt Shortcuts
 
-When installed, AI assistants automatically map common operator intents to the corresponding specialized skill and tool actions:
+`./install.sh` installs 10 slash commands into `~/.claude/commands/retreaver/`, `~/.omp/agent/commands/retreaver/`, and `~/.cursor/commands/` so you can invoke complex workflows with a single command or natural-language phrase:
 
-| What you ask the AI assistant | Target Skill | CLI / MCP Action | Under the Hood |
+| Slash Command | Natural-Language Prompt Shortcut | Target Skill | CLI / MCP Action |
 |---|---|---|---|
-| **"Set up this buyer..."** | `retreaver-buyer-ops` | `buyer_ops.py create` | Calls `targets.manage` with E.164 number, priority, weight, timeout, and business hours. |
-| **"Set buyer caps..."** | `retreaver-buyer-ops` | `buyer_ops.py set-caps` | Calls `targets.caps.manage` for concurrency, hourly, daily, monthly, and hard caps. |
-| **"Set up this publisher..."** | `retreaver-publisher-ops` | `publisher_ops.py create` | Calls `affiliates.manage` to provision publisher accounts and assign payout terms. |
-| **"Generate RTB postback key..."** | `retreaver-publisher-ops` | `publisher_ops.py create-key` | Calls `postback_keys.manage` creating campaign-bound RTB pings and data writing keys. |
-| **"Add this webhook here..."** | `retreaver-webhook-ops` | `webhook_ops.py from-template` | Calls `webhooks.configurations.manage` using CallGrid, TrackDrive, Anura, or custom templates. |
-| **"Test fire this webhook..."** | `retreaver-webhook-ops` | `webhook_ops.py test-fire` | Calls `webhooks.test_fires.manage` to simulate real pixel delivery and response tags. |
-| **"Check why it's not working..."** | `retreaver-diagnostics-reporting` | `diag_reporting.py rtb-diagnose` | Reads `rtb_inbounds.read` to diagnose `no-target`, `expired`, cap limits, or buyer API errors. |
-| **"Give me stats on today..."** | `retreaver-diagnostics-reporting` | `diag_reporting.py call-stats` | Queries `calls_drill_down_tables.read` across campaigns, publishers, targets, and revenue. |
-| **"Show RTB ping/post summary..."** | `retreaver-diagnostics-reporting` | `diag_reporting.py rtb-summary` | Aggregates ClickHouse RTB reservation logs to reveal bid rates, duplicate volume, and EPC. |
+| **`/retreaver:status`** | *"Which Retreaver company am I connected to?"* | `retreaver-operator` | `account.whoami` + active campaign/buyer count |
+| **`/retreaver:rtb-diag`** | *"Check why RTB pings/pics aren't going through"* | `retreaver-diagnostics-reporting` | `rtb_inbounds.read` + `no-target`/`expired` root cause |
+| **`/retreaver:stats`** | *"Give me the stats on what's happened today"* | `retreaver-diagnostics-reporting` | `calls_drill_down_tables.read` + RTB bid rollups |
+| **`/retreaver:setup-buyer`** | *"Set up this buyer & cap at 50 concurrent"* | `retreaver-buyer-ops` | `targets.manage` (`dry_run` first) + `targets.caps.manage` |
+| **`/retreaver:setup-publisher`** | *"Set up this publisher & generate an RTB key"* | `retreaver-publisher-ops` | `affiliates.manage` + `postback_keys.manage` |
+| **`/retreaver:setup-webhook`** | *"Add this webhook & test-fire it"* | `retreaver-webhook-ops` | `webhooks.configurations.manage` + `webhooks.test_fires.manage` |
+| **`/retreaver:routing`** | *"Show or edit campaign routing tiers & weights"* | `retreaver-campaign-routing-ops` | `campaigns.routing_settings.read` / `manage` (`dry_run`) |
+| **`/retreaver:suppress`** | *"Check or upload numbers to the Suppressed list"* | `retreaver-caller-lists-suppression` | `caller_list_checks.manage` / `caller_list_uploads.manage` |
+| **`/retreaver:pbm`** | *"Register a numeric tag, upload PBM table, or credit a call"* | `retreaver-tags-bidding-ops` | `tags.manage` / `payout_bid_modification_tables.manage` / `calls.manage` |
+| **`/retreaver:audit`** | *"Run a full housekeeping audit on caps, numbers & webhooks"* | `retreaver-operator` | `retreaver_cli.py audit` (uncapped buyers, orphaned DIDs, token targets) |
+
+---
+
+## Multi-Step Operator Recipes
+
+Use these chained prompts directly in chat:
+
+### 1. Stand Up a Buyer & Prove the Webhook Works
+> 1. *"Add a buyer called 'Sunrise Insurance' to the 'Auto Insurance' campaign, cap it at 50 concurrent calls and 200 daily, business hours 9–5 Eastern weekdays — show me a dry run first."*
+> 2. *"Apply that. Create the CallGrid or CRM ping webhook on that buyer from the configurator template."*
+> 3. *"Test-fire that webhook and show me the exact URL it hit and the response payload."*
+> 4. *"Put Sunrise Insurance in the top routing tier for California and Texas — dry run first."*
+
+### 2. Diagnose Why RTB Pings ("Pics") Aren't Converting
+> 1. *"/retreaver:rtb-diag 15"* (or *"Analyze the RTB logs for the last 15 minutes and tell me why pings aren't going through."*)
+> 2. *"Break down `no-target` vs `expired` by caller state and buyer."*
+> 3. *"Test the buyer's passthrough bid endpoint directly to check if capacity is full (`code: 4004`) or caller ID is blocked."*
+> 4. *"Check if the campaign has a fallback tracking number pool or if reservations are returning SIP-only URIs."*
+
+### 3. Diagnose a Conversion Drop
+> 1. *"Converted calls for the ACA campaign this week vs last week, broken down by buyer."*
+> 2. *"For the buyer that dropped the most, show me connected vs converted, and the longest converting call."*
+> 3. *"What caps and routing weight does that buyer have right now? Did its hard cap fire?"*
+
+### 4. Company Switch & Housekeeping Audit
+> 1. *"/retreaver:audit"*
+> 2. *"Which active buyers have no caps set at all?"*
+> 3. *"Which campaigns are paused but still have active tracking numbers pointed at them?"*
+> 4. *"List every webhook posting to a URL containing 'staging' or 'test'."*
+
+---
+
+## 9 Modular Skills (51/51 MCP Tools)
+
+```text
+skills/
+├── retreaver-operator/                  # 1. Master orchestrator & unified CLI (whoami, audit, rtb-diag, stats)
+├── retreaver-buyer-ops/                 # 2. Buyers/Targets, 5 cap tiers, hard-cap resets, business hours, duplicates
+├── retreaver-publisher-ops/             # 3. Publishers/Affiliates, RTB & Data Writing postback keys, conversion groups
+├── retreaver-campaign-routing-ops/      # 4. Campaigns, priority/weight routing ladders, Waiting Room, Handler Groups, IVR Prompts
+├── retreaver-numbers-pools-ops/         # 5. Tracking DIDs, Dynamic Number Pools (DNI), SIP URI routing, number caps
+├── retreaver-caller-lists-suppression/  # 6. Suppressed/Accepted caller lists, bulk CSV uploads, live number checks
+├── retreaver-webhook-ops/               # 7. Passthrough/HTTP/Postback timers, 100+ configurator templates, test-firing
+├── retreaver-tags-bidding-ops/          # 8. Tag Wizard (Text/Numeric/Date), Replacement Tokens, PBM CSV tables, call credits
+└── retreaver-diagnostics-reporting/     # 9. ClickHouse RTB inbound logs, call detail flows, drill-down rollups, CSV exports
+```
+
+| Skill | Covered MCP Tools |
+|---|---|
+| **`retreaver-operator`** | `account.whoami`, `catalog.search`, `docs.search`, `docs.fetch` + cross-domain orchestration |
+| **`retreaver-buyer-ops`** | `targets.read`, `targets.manage`, `targets.caps.manage`, `targets.cap_resets.manage`, `targets.duplicates.manage` |
+| **`retreaver-publisher-ops`** | `affiliates.read`, `affiliates.manage`, `postback_keys.read`, `postback_keys.manage`, `conversion_groups.read`, `conversion_groups.manage` |
+| **`retreaver-campaign-routing-ops`** | `campaigns.read`, `campaigns.manage`, `campaigns.routing_settings.read`, `campaigns.routing_settings.manage`, `target_groups.read`, `target_groups.manage`, `target_groups.duplicates.manage`, `prompts.read`, `prompts.manage` |
+| **`retreaver-numbers-pools-ops`** | `numbers.read`, `numbers.manage`, `number_pools.read`, `number_pools.manage` |
+| **`retreaver-caller-lists-suppression`** | `caller_lists.read`, `caller_lists.manage`, `caller_list_numbers.read`, `caller_list_numbers.manage`, `caller_list_uploads.read`, `caller_list_uploads.manage`, `caller_list_checks.manage` |
+| **`retreaver-webhook-ops`** | `webhooks.read`, `webhooks.manage`, `webhooks.test_fires.manage`, `webhooks.templates.read`, `webhooks.configurations.manage` |
+| **`retreaver-tags-bidding-ops`** | `tags.read`, `tags.manage`, `tags.replacement_tokens.read`, `payout_bid_modification_tables.read`, `payout_bid_modification_tables.manage`, `calls.manage` |
+| **`retreaver-diagnostics-reporting`** | `rtb_inbounds.read`, `rtb_inbound_drill_down_tables.read`, `calls.read`, `calls_drill_down_tables.read`, `exports.rtb_inbounds.manage` |
 
 ---
 
 ## Client Setup Guide
 
-The Retreaver MCP server operates over **streamable HTTP** with **OAuth 2.0 PKCE** authentication:
+The Retreaver MCP server speaks **streamable HTTP** and authenticates via **OAuth 2.0 PKCE**:
 
 ```text
-Endpoint: https://ai.retreaver.com/mcp
+https://ai.retreaver.com/mcp
 ```
 
-### 1. Claude Code
-```bash
-claude mcp add --transport http retreaver --scope user https://ai.retreaver.com/mcp
-```
-Run `claude /mcp`, select **retreaver**, and authorize in your browser.
-
-### 2. OpenAI Codex
-```bash
-codex mcp add retreaver --url https://ai.retreaver.com/mcp
-```
-Codex starts the OAuth authorization flow and saves credentials locally.
-
-### 3. xAI Grok
-```bash
-grok mcp add --transport http retreaver https://ai.retreaver.com/mcp
-```
-
-### 4. Nous Hermes
-```bash
-hermes config set mcp_servers.retreaver.url "https://ai.retreaver.com/mcp"
-hermes config set mcp_servers.retreaver.auth "oauth"
-hermes config set mcp_servers.retreaver.enabled true
-```
-Authenticate interactively via `hermes mcp login retreaver`.
-
-### 5. Cursor
-Add to `~/.cursor/mcp.json`:
-```json
-{
-  "mcpServers": {
-    "retreaver": {
-      "url": "https://ai.retreaver.com/mcp"
-    }
-  }
-}
-```
-
-### 6. Claude Desktop
-Because Claude Desktop uses stdio transports, use the `mcp-remote` bridge in `claude_desktop_config.json`:
-```json
-{
-  "mcpServers": {
-    "retreaver": {
-      "command": "npx",
-      "args": ["-y", "mcp-remote", "https://ai.retreaver.com/mcp"]
-    }
-  }
-}
-```
-
-### 7. OMP (Oh My Pi)
-Add to `~/.omp/agent/mcp.json`:
-```json
-{
-  "mcpServers": {
-    "retreaver": {
-      "type": "http",
-      "url": "https://ai.retreaver.com/mcp"
-    }
-  }
-}
-```
-
----
-
-## Skills Architecture
-
-The repository contains 5 modular operator skills adhering to strict agent code contracts:
-
-```text
-skills/
-├── retreaver-operator/               # Master orchestrator & unified CLI
-│   ├── SKILL.md
-│   ├── scripts/retreaver_cli.py
-│   └── references/operator-spec.md
-├── retreaver-buyer-ops/              # Target & buyer lifecycle management
-│   ├── SKILL.md
-│   ├── scripts/buyer_ops.py
-│   └── references/buyer-spec.md
-├── retreaver-publisher-ops/          # Affiliate & publisher management
-│   ├── SKILL.md
-│   ├── scripts/publisher_ops.py
-│   └── references/publisher-spec.md
-├── retreaver-webhook-ops/            # Webhooks, timers & third-party integrations
-│   ├── SKILL.md
-│   ├── scripts/webhook_ops.py
-│   └── references/webhook-spec.md
-└── retreaver-diagnostics-reporting/  # RTB diagnostics & ClickHouse rollups
-    ├── SKILL.md
-    ├── scripts/diag_reporting.py
-    └── references/diag-reporting-spec.md
-```
-
-### Skill Invariants
-1. **Safety First**: All mutation actions support `dry_run: true` to return diff previews without modifying live campaign state.
-2. **E.164 Standards**: Phone numbers must be formatted in standard E.164 (e.g. `+18005550199`).
-3. **Tag Strictness**: Numeric and date comparisons require registered tag keys via the Tag Wizard; unregistered keys evaluate lexicographically.
-4. **Structured JSON Output**: All scripts output clean, parseable JSON suitable for piping and subagent handoffs.
+- **Claude Code:** `claude mcp add --transport http retreaver --scope user https://ai.retreaver.com/mcp`
+- **OpenAI Codex:** `codex mcp add retreaver --url https://ai.retreaver.com/mcp`
+- **xAI Grok:** `grok mcp add --transport http retreaver https://ai.retreaver.com/mcp`
+- **AGY:** `agy mcp add --type http retreaver https://ai.retreaver.com/mcp`
+- **Nous Hermes:** `hermes config set mcp_servers.retreaver.url "https://ai.retreaver.com/mcp" && hermes config set mcp_servers.retreaver.auth "oauth" && hermes config set mcp_servers.retreaver.enabled true`
+- **OMP / Cursor:** Add `"retreaver": {"type": "http", "url": "https://ai.retreaver.com/mcp"}` to `~/.omp/agent/mcp.json` or `~/.cursor/mcp.json`.
 
 ---
 
 ## CLI Reference
 
-All scripts support `--help` and accept either flags or JSON inputs.
+Every skill ships with a standalone Python CLI wrapper in `scripts/` that supports `--help` and auto-refreshes OAuth tokens:
 
-### Master Unified CLI (`retreaver_cli.py`)
 ```bash
-# Check company identity and role
-python3 skills/retreaver-operator/scripts/retreaver_cli.py whoami
+# Master Unified CLI (whoami, audit, buyer, publisher, webhook, rtb-diag, stats)
+python3 skills/retreaver-operator/scripts/retreaver_cli.py audit
 
-# Create a buyer
-python3 skills/retreaver-operator/scripts/retreaver_cli.py buyer create \
-  --name "Health Insurance Buyer" \
-  --number "+18885550123" \
-  --priority 1 \
-  --weight 100 \
-  --timeout 30
+# Campaign & Routing Operations
+python3 skills/retreaver-campaign-routing-ops/scripts/campaign_routing_ops.py routing --campaign-id 54098
 
-# Set buyer caps
-python3 skills/retreaver-operator/scripts/retreaver_cli.py buyer caps \
-  --target-id 148422 \
-  --concurrency 5 \
-  --daily 250
+# Numbers & Dynamic Pools
+python3 skills/retreaver-numbers-pools-ops/scripts/numbers_pools_ops.py list-numbers
 
-# Diagnose RTB inbounds over the last 15 minutes
-python3 skills/retreaver-operator/scripts/retreaver_cli.py rtb-diag --minutes 15
+# Caller Lists & Suppression
+python3 skills/retreaver-caller-lists-suppression/scripts/caller_lists_ops.py list --owner-type Campaign --owner-id 54098
 
-# Pull real-time call performance for today
-python3 skills/retreaver-operator/scripts/retreaver_cli.py stats --window today
-```
+# Tags, Replacement Tokens, PBM & Call Crediting
+python3 skills/retreaver-tags-bidding-ops/scripts/tags_bidding_ops.py list-tags
 
-### Buyer Operations CLI (`buyer_ops.py`)
-```bash
-# List all active targets
+# Buyer Operations
 python3 skills/retreaver-buyer-ops/scripts/buyer_ops.py list --per-page 25
 
-# Show specific buyer details and business hours
-python3 skills/retreaver-buyer-ops/scripts/buyer_ops.py show --target-id 148422
+# Publisher Operations
+python3 skills/retreaver-publisher-ops/scripts/publisher_ops.py list --per-page 25
 
-# Reset hard cap
-python3 skills/retreaver-buyer-ops/scripts/buyer_ops.py reset-cap --target-id 148422
-```
-
-### Publisher Operations CLI (`publisher_ops.py`)
-```bash
-# List publishers
-python3 skills/retreaver-publisher-ops/scripts/publisher_ops.py list
-
-# Create an RTB postback key for a publisher
-python3 skills/retreaver-publisher-ops/scripts/publisher_ops.py create-key \
-  --campaign-id 54098 \
-  --publisher-id 71327 \
-  --name "Affiliate RTB Key" \
-  --ttl 60
-```
-
-### Webhook Operations CLI (`webhook_ops.py`)
-```bash
-# Browse 100+ pre-built integration templates
+# Webhook Operations
 python3 skills/retreaver-webhook-ops/scripts/webhook_ops.py templates
 
-# Test-fire a webhook to verify pixel responses
-python3 skills/retreaver-webhook-ops/scripts/webhook_ops.py test-fire --webhook-id 123786
-```
-
-### Diagnostics & Reporting CLI (`diag_reporting.py`)
-```bash
-# Inspect RTB reservation breakdown by status
+# Diagnostics & ClickHouse Rollups
 python3 skills/retreaver-diagnostics-reporting/scripts/diag_reporting.py rtb-summary --group-by status
-
-# Diagnose failed reservations for a campaign
-python3 skills/retreaver-diagnostics-reporting/scripts/diag_reporting.py rtb-diagnose \
-  --campaign-id 54098 \
-  --time-frame last_24h
-
-# Pull call stats grouped by publisher and status
-python3 skills/retreaver-diagnostics-reporting/scripts/diag_reporting.py call-stats \
-  --window today \
-  --group-by "affiliate_id,status"
 ```
 
 ---
 
-## Operational Invariants & Safety
+## Operational Invariants & Troubleshooting
 
-When troubleshooting RTB and call routing:
-
-1. **`no-target` Status**:
-   - Indicates no buyer qualified for the inbound ping.
-   - Common causes: State not present in buyer's `geo` tag whitelist; buyer capacity full (`code: 4004` from dynamic ping endpoints like CallGrid); concurrency caps reached; or outside business hours.
-2. **`expired` Status**:
-   - A buyer returned a valid bid and Retreaver created a reservation (`status: reserved`), but the publisher **never placed the matching voice call** within the `ttl_seconds` window (typically 60–75s).
-   - Verify that the publisher receives the response payload and dials the returned dynamic DID or SIP URI.
-3. **`ping_shield_already_reserved`**:
-   - Duplicate pings for the same caller number within the active reservation window are automatically suppressed to protect buyer endpoints from spam.
+1. **One Connection = One Company**: Every MCP OAuth grant is bound to whichever company your browser session was switched into when you clicked **Approve**. Always confirm with `account.whoami` (`/retreaver:status`) before writing.
+2. **Always Dry-Run First**: Pass `dry_run: true` on `campaigns.manage`, `campaigns.routing_settings.manage`, `targets.manage`, and `affiliates.manage` to inspect field-level diffs before applying changes.
+3. **`no-target` vs `expired` in RTB**:
+   - **`no-target`**: Buyer disqualified due to missing `geo` state tag, cap exhaustion, closed business hours, or buyer webhook returning a non-matching bid code (e.g. CallGrid `code: 4004`).
+   - **`expired`**: Buyer bid succeeded and reserved a slot (`ttl_seconds`), but the publisher never bridged the live phone call before the reservation expired.
+4. **Numeric & Date Tag Registration**: Always register numeric/date tags via `tags.manage` (`retreaver-tags-bidding-ops`) so `<` and `>` operators evaluate numerically instead of lexicographically.
 
 ---
 
 ## Installation
-
-### Automatic Install
-Clone the repository and run `install.sh` to install all skills directly into your global agent skills directory:
 
 ```bash
 git clone https://github.com/ArielleTolome/retreaver-mcp-skills.git
@@ -257,13 +171,7 @@ cd retreaver-mcp-skills
 ./install.sh
 ```
 
-By default, this installs skills to `~/.agents/skills/` (and automatically links `~/.omp/agent/skills` if present).
-
-### Manual Install
-Copy the desired skill directories into your harness's skill folder:
-```bash
-cp -r skills/retreaver-* ~/.agents/skills/
-```
+`./install.sh` installs all **9 skills** to `~/.agents/skills/` (linking into `~/.omp`, `~/.claude`, `~/.codex`, `~/.grok`, and `~/.hermes`) and installs all **10 `/retreaver:*` slash commands**.
 
 ---
 

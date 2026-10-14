@@ -204,6 +204,47 @@ def cmd_stats(args):
     })
     print(json.dumps(res, indent=2))
 
+def cmd_audit(args):
+    who = call_mcp("account.whoami")
+    campaigns = call_mcp("campaigns.read", {"action": "index", "per_page": 100}).get("campaigns", [])
+    targets = call_mcp("targets.read", {"action": "index", "per_page": 100}).get("targets", [])
+    numbers = call_mcp("numbers.read", {"action": "index", "per_page": 100}).get("numbers", [])
+    pools = call_mcp("number_pools.read", {"action": "index", "per_page": 100}).get("number_pools", [])
+    
+    uncapped_targets = []
+    token_targets = []
+    for t in targets:
+        if not t.get("paused") and str(t.get("number", "")).startswith("["):
+            token_targets.append({"id": t.get("id"), "name": t.get("name"), "number": t.get("number")})
+        t_detail = call_mcp("targets.read", {"action": "show", "target_id": t["id"]}).get("target", {})
+        caps = t_detail.get("caps", [])
+        if not t.get("paused") and all(c.get("cap") is None for c in caps) and t_detail.get("concurrency_cap") is None:
+            uncapped_targets.append({"id": t.get("id"), "name": t.get("name")})
+            
+    paused_cids = {c.get("cid"): c.get("name") for c in campaigns if c.get("paused")}
+    orphaned_numbers = [
+        {"id": n.get("id"), "number": n.get("number"), "campaign": paused_cids[n.get("cid")]}
+        for n in numbers if n.get("cid") in paused_cids
+    ]
+    
+    report = {
+        "status": "success",
+        "command": "audit",
+        "company": who.get("company"),
+        "counts": {
+            "campaigns": len(campaigns),
+            "targets": len(targets),
+            "numbers": len(numbers),
+            "number_pools": len(pools),
+        },
+        "findings": {
+            "active_targets_without_caps": uncapped_targets,
+            "dynamic_token_targets": token_targets,
+            "numbers_on_paused_campaigns": orphaned_numbers,
+        },
+    }
+    print(json.dumps(report, indent=2))
+
 def main():
     parser = argparse.ArgumentParser(description="Retreaver Operator CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -257,6 +298,10 @@ def main():
     p_stats = subparsers.add_parser("stats", help="Get call and revenue statistics")
     p_stats.add_argument("--window", type=str, default="today", help="Window token (e.g. today, yesterday, last_7d)")
     p_stats.set_defaults(func=cmd_stats)
+
+    # audit
+    p_audit = subparsers.add_parser("audit", help="Run full operational housekeeping audit")
+    p_audit.set_defaults(func=cmd_audit)
 
     args = parser.parse_args()
     if args.command == "whoami":
